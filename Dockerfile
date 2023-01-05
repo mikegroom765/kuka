@@ -1,15 +1,6 @@
-FROM osrf/ros:kinetic-desktop
+FROM nvidia/cudagl:10.2-devel-ubuntu16.04
 
 # Dependencies for glvnd and X11.
-RUN apt-get update \
-  && apt-get install -y -qq --no-install-recommends \
-    libglvnd0 \
-    libgl1 \
-    libglx0 \
-    libegl1 \
-    libxext6 \
-    libx11-6 \
-  && rm -rf /var/lib/apt/lists/*
 
   # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES \
@@ -19,6 +10,19 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 
 # Change the default shell to Bash
 SHELL [ "/bin/bash" , "-c" ]
+
+
+# Install ros kinetic
+
+RUN apt-get update && apt-get install -y lsb-release gnupg2 curl
+
+RUN echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list
+
+RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
+
+RUN apt-get update && apt-get install -y ros-kinetic-desktop-full
+
+RUN apt-get install -y python-rosinstall python-rosinstall-generator python-wstool build-essential
 
 # # Change the default shell to Bash
 # SHELL [ "/bin/bash" , "-c" ]
@@ -35,8 +39,9 @@ SHELL [ "/bin/bash" , "-c" ]
 # RUN sudo apt-get update && sudo apt-get install -y ros-kinetic-desktop-full
 
 RUN apt-get update && apt-get install -y git \
-    && apt-get install -y ros-kinetic-joint-state-publisher-gui
-
+    && apt-get install -y ros-kinetic-joint-state-publisher-gui \
+    && apt-get install -y ros-kinetic-ros-control ros-kinetic-ros-controllers \
+    && apt-get install -y ros-kinetic-industrial-core
 # Create a Catkin workspace and clone demo code
 RUN source /opt/ros/kinetic/setup.bash \
     && mkdir -p /catkin_ws/src \
@@ -54,10 +59,14 @@ RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
 
 RUN source /opt/ros/kinetic/setup.bash \
     && sudo rosdep init \
-    && rosdep update \
-    && cd catkin_ws/src \
-    && git clone https://github.com/ros-industrial/kuka_experimental.git \
-    && cd .. \
+    && rosdep update
+
+RUN cd /catkin_ws/src \
+    && git clone https://github.com/ros-industrial/kuka_experimental.git
+
+RUN cd /catkin_ws \
+    && source /opt/ros/kinetic/setup.bash \
+    && source /catkin_ws/devel/setup.bash \
     && rosdep install -y --from-paths src --ignore-src \
     && catkin_make
 

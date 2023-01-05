@@ -1,5 +1,8 @@
 sudo xhost +local:docker
-XAUTH=/tmp/.docker.xauth
+export XAUTH=/tmp/.docker.xauth
+touch $XAUTH
+xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
+
 if [ ! -f $XAUTH ]
 then
     xauth_list=$(xauth nlist :0 | sed -e 's/^..../ffff/')
@@ -20,6 +23,8 @@ docker run -it \
     --gpus all \
     --env="DISPLAY=$DISPLAY" \
     --env="QT_X11_NO_MITSHM=1" \
+    --env=NVIDIA_DRIVER_CAPABILITIES=all \
+    --env=NVIDIA-VISIBLE_DEVICES=all \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     -v="/home/faster/Desktop/kuka/files:/kuka" \
     --env="XAUTHORITY=$XAUTH" \
